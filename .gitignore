@@ -1,0 +1,26 @@
+# Dependencies and builds
+node_modules/
+app/node_modules/
+app/dist/
+app/.vite/
+
+# Local test output and browser state
+app/artifacts/
+*.local.*
+.env
+.env.*
+!.env.example
+
+# Private research material
+private/
+fulltext/
+papers/
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+~$*
+*.tmp
+*.bak
