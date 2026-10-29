@@ -12,11 +12,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:prompt": "node scripts/prompt-test.mjs",
+    "test:archive": "node scripts/archive-test.mjs",
     "test:smoke": "node scripts/smoke-test.mjs",
     "capture:readme": "node scripts/capture-readme.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.64.1",
     "vite": "^7.1.9"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
   }
 }

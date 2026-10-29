@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import { strFromU8, unzipSync } from 'fflate';
 
 const root = path.resolve(import.meta.dirname, '..');
 const artifacts = path.join(root, 'artifacts');
@@ -114,6 +115,37 @@ try {
   assert.match(await page.locator('#archive-summary').innerText(), /调研报告.pdf/);
   await page.screenshot({ path: path.join(artifacts, 'step3-desktop.png'), fullPage: true });
 
+  await page.locator('#open-archive-export').click();
+  assert.equal(await page.locator('#archive-dialog').isVisible(), true);
+  assert.equal(await page.locator('[data-archive-entry]').count(), 11);
+  assert.equal(await page.locator('[data-archive-entry]:checked').count(), 11);
+  await page.screenshot({ path: path.join(artifacts, 'archive-export-dialog.png'), fullPage: true });
+  const [archiveDownload] = await Promise.all([page.waitForEvent('download'), page.locator('#confirm-archive-export').click()]);
+  const archivePath = path.join(artifacts, 'full-archive.zip');
+  await archiveDownload.saveAs(archivePath);
+  const archive = unzipSync(await readFile(archivePath));
+  assert.ok(archive['01_第一次调研/调研报告.pdf']);
+  assert.ok(archive['02_第二次调研/方向研究与精读指南.md']);
+  assert.ok(archive['03_精读全文/短期与日前负荷预测/调研报告.pdf']);
+  assert.ok(archive['04_候选报告/候选选题论证报告.md']);
+  assert.equal(JSON.parse(strFromU8(archive['档案清单.json'])).itemCount, 11);
+  assert.doesNotMatch(strFromU8(archive['流程数据/选题工作台进度.json']), /unit-test-secret/);
+
+  await page.locator('#open-archive-export').click();
+  await page.locator('[data-archive-entry="profile"]').uncheck();
+  await page.locator('[data-archive-entry="progress"]').uncheck();
+  await page.locator('[data-archive-entry^="artifact:leapCsv:"]').uncheck();
+  assert.equal(await page.locator('[data-archive-entry]:checked').count(), 8);
+  const [subsetDownload] = await Promise.all([page.waitForEvent('download'), page.locator('#confirm-archive-export').click()]);
+  const subsetPath = path.join(artifacts, 'subset-archive.zip');
+  await subsetDownload.saveAs(subsetPath);
+  const subset = unzipSync(await readFile(subsetPath));
+  assert.equal(subset['01_第一次调研/虚构文献元数据.csv'], undefined);
+  assert.equal(subset['流程数据/个人卡片.md'], undefined);
+  assert.equal(subset['流程数据/选题工作台进度.json'], undefined);
+  assert.ok(subset['03_精读全文/短期与日前负荷预测/调研报告.pdf']);
+  assert.equal(JSON.parse(strFromU8(subset['档案清单.json'])).itemCount, 8);
+
   const [progressDownload] = await Promise.all([page.waitForEvent('download'), page.locator('#export-state').click()]);
   const progressPath = path.join(artifacts, 'progress.json');
   await progressDownload.saveAs(progressPath);
@@ -133,8 +165,13 @@ try {
   await page.locator('[data-step="step2"]').click();
   await page.screenshot({ path: path.join(artifacts, 'step2-mobile.png'), fullPage: true });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'Mobile page should not overflow horizontally');
+  await page.locator('[data-step="step3"]').click();
+  await page.locator('#open-archive-export').click();
+  await page.screenshot({ path: path.join(artifacts, 'archive-export-mobile.png'), fullPage: true });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, 'Mobile archive dialog should not overflow horizontally');
+  await page.locator('#close-archive-dialog').click();
   assert.equal(consoleErrors.length, 0, `Browser errors: ${consoleErrors.join('\n')}`);
-  console.log('PASS: 四步流程、三次提示词、102 条虚构 CSV 保存、key 选择、2 个优先方向、精读数量下限与 14 个动态槽位、题名保留、全文分级、持久化、导入导出、桌面与移动端。');
+  console.log('PASS: 四步流程、三次提示词、文件保存、key 选择、动态精读槽位、全文分级、持久化、进度导入导出、完整与子集 ZIP 实际下载、API key 清理、桌面与移动端。');
   console.log(`Artifacts: ${artifacts}`);
 } finally {
   if (browser) await browser.close();

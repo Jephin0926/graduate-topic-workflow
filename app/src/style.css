@@ -94,6 +94,17 @@ h2 { font-size: 16px; margin: 2px 0 0; font-weight: 650; } h3 { font-size: 14px;
 .archive-summary { display: grid; grid-template-columns: .7fr 1.3fr; gap: 18px; } .archive-prompts, .archive-files { padding: 20px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper); }
 .archive-prompts h3, .archive-files h3 { margin-top: 0; } .archive-prompts > div, .archive-files > div { display: flex; justify-content: space-between; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 10px; }
 .archive-files p { color: var(--muted); font-size: 11px; } .final-checks { display: grid; gap: 12px; padding: 20px; background: #e9eee6; border-radius: 8px; font-size: 12px; }
+.archive-export-bar { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-top: 18px; padding: 20px; border: 1px solid #bdcec2; border-radius: 9px; background: #edf3e9; }
+.archive-export-bar strong { font-size: 13px; } .archive-export-bar p { margin: 7px 0 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.archive-dialog { width: min(720px,92vw); max-height: 86vh; padding: 26px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); overflow: auto; box-shadow: 0 24px 80px rgba(20,42,34,.24); }
+.archive-dialog::backdrop { background: rgba(16,38,32,.52); backdrop-filter: blur(3px); }
+.archive-dialog-heading, .archive-selection-tools, .archive-dialog-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.archive-dialog-heading h2 { margin: 0; font-size: 20px; } .archive-dialog-heading p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.archive-selection-tools { margin: 24px 0 16px; } .archive-selection-tools > div { display: flex; gap: 8px; } #archive-selected-count { color: var(--green); font-size: 11px; }
+.archive-options { display: grid; gap: 18px; } .archive-option-group h3 { display: flex; justify-content: space-between; margin: 0; padding-bottom: 9px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.archive-option-group h3 span { color: var(--muted); font-size: 10px; font-weight: 400; } .archive-option { display: flex; align-items: flex-start; gap: 10px; padding: 11px 4px; border-bottom: 1px solid #ecece6; cursor: pointer; }
+.archive-option input { margin-top: 3px; accent-color: var(--green); } .archive-option strong { display: block; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; } .archive-option small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+.archive-dialog .privacy-note { margin-top: 22px; } .archive-dialog-actions { justify-content: flex-end; margin-top: 22px; }
 footer { width: min(1050px,91%); margin: 0 auto; border-top: 1px solid var(--line); padding: 20px 0 26px; display: flex; justify-content: space-between; gap: 20px; color: #87918c; font-size: 9px; }
 .toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%,20px); z-index: 50; background: #193d35; color: white; border-radius: 7px; padding: 12px 18px; font-size: 11px; box-shadow: 0 12px 32px rgba(20,42,34,.2); opacity: 0; pointer-events: none; transition: opacity .2s,transform .2s; max-width: min(560px,90vw); line-height: 1.6; }
 .toast.show { opacity: 1; transform: translate(-50%,0); } .toast.warning { background: #8b5b28; }
@@ -105,5 +116,6 @@ footer { width: min(1050px,91%); margin: 0 auto; border-top: 1px solid var(--lin
   .form-grid,.artifact-grid,.key-options,.priority-list,.archive-summary { grid-template-columns: 1fr; } .field.wide { grid-column: auto; } .settings-grid { max-width: 100%; }
   .action-bar { align-items: flex-start; flex-direction: column; } .action-bar .primary-button { width: 100%; } .output-actions { flex-direction: column; } .output-actions button { width: 100%; }
   .direction-fields { grid-template-columns: 1fr; } .reading-row { grid-template-columns: 24px 1fr; } .reading-row select,.file-mini,.reading-file { grid-column: 2; } footer { flex-direction: column; gap: 7px; }
+  .archive-export-bar { align-items: flex-start; flex-direction: column; } .archive-export-bar .primary-button { width: 100%; } .archive-dialog { padding: 18px; } .archive-dialog-actions button { flex: 1; }
 }
 @media (max-width: 430px) { main,footer { width: 90%; } .top-actions { gap: 10px !important; } #save-status { display: none; } .section-heading,.output-heading { align-items: flex-start; } .output-badge { display: none; } .output-area { padding: 18px; } .direction-row { grid-template-columns: 25px 1fr; } .direction-row > button { grid-column: 2; justify-self: end; } }

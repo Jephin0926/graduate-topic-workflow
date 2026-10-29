@@ -2,6 +2,7 @@ import './style.css';
 import { hydrateState, demoProfile, demoDirections, artifactDefinitions, readingSlots, normalizeReadingCount } from './data.js';
 import { buildFirstPrompt, buildSecondPrompt, buildThirdPrompt } from './prompts.js';
 import { loadState, saveState as persistState, putFile, getFile, deleteFile, downloadBlob } from './storage.js';
+import { archiveEntries, createArchive, profileMarkdown } from './archive.js';
 
 let state = loadState();
 let toastTimer;
@@ -135,13 +136,21 @@ document.querySelector('#app').innerHTML = `
         ${artifactCard('finalReport')}
         <div class="section-heading"><div><span class="section-index">02</span><div><h2>流程产物与提示词</h2><p>文件保存在浏览器本地；导出进度 JSON 不包含文件本体。</p></div></div></div>
         <div id="archive-summary" class="archive-summary"></div>
+        <div class="archive-export-bar"><div><strong>导出完整档案包</strong><p>按需选择提示词、两次调研成果、每篇精读全文和候选报告，打包为 ZIP 备份。</p></div><button class="primary-button" id="open-archive-export">选择导出内容</button></div>
         <div class="section-heading"><div><span class="section-index">03</span><div><h2>下一步</h2><p>核对证据缺口、个人条件与学校要求，再与导师讨论。</p></div></div></div>
         <div class="final-checks"><label><input type="checkbox" disabled> 文献事实与全文位置已人工抽查</label><label><input type="checkbox" disabled> 数据许可、实验条件和培养要求已确认</label><label><input type="checkbox" disabled> 已与导师讨论通过、修改或回退方案</label></div>
       </section>
     </main>
     <footer><span>研究生选题工作流 · 本地优先</span><span>AI 辅助整理，人工核验与导师决策不可替代</span></footer>
   </div>
-</div><div id="toast" class="toast" role="status" aria-live="polite"></div>`;
+</div><div id="toast" class="toast" role="status" aria-live="polite"></div>
+<dialog id="archive-dialog" class="archive-dialog" aria-labelledby="archive-dialog-title">
+  <div class="archive-dialog-heading"><div><h2 id="archive-dialog-title">选择档案包内容</h2><p>所有已上传的中间产物都可以独立选择，默认全选。</p></div><button class="text-button" id="close-archive-dialog" aria-label="关闭导出窗口">关闭</button></div>
+  <div class="archive-selection-tools"><div><button class="subtle-button" id="archive-select-all">全选</button><button class="subtle-button" id="archive-select-none">清空</button></div><span id="archive-selected-count"></span></div>
+  <div id="archive-options" class="archive-options"></div>
+  <div class="privacy-note"><strong>档案包不包含工作台保存的 API key。</strong><span>进度 JSON 和生成的提示词会移除 key；上传文件按原内容打包，请自行检查敏感信息。ZIP 用于本地备份与文件取回，不是进度导入格式。</span></div>
+  <div class="archive-dialog-actions"><button class="secondary-button" id="cancel-archive-export">取消</button><button class="primary-button" id="confirm-archive-export">导出 ZIP</button></div>
+</dialog>`;
 
 function renderPrompt(name) {
   const output = document.querySelector(`#output-${name}`);
@@ -193,6 +202,50 @@ function renderArchive() {
   const readingFiles = Object.values(state.readings).flat().filter((item) => item.file).map((item) => ({ ...item.file, label: '重点精读全文' }));
   const all = [...files, ...readingFiles];
   document.querySelector('#archive-summary').innerHTML = `<div class="archive-prompts"><h3>已生成提示词</h3>${['first', 'second', 'third'].map((name, index) => `<div><span>第 ${index + 1} 次交互</span><button class="text-button" data-download-prompt="${name}" ${state.prompts[name] ? '' : 'disabled'}>下载提示词</button></div>`).join('')}</div><div class="archive-files"><h3>已保存文件（${all.length}）</h3>${all.length ? all.map((file) => `<div><span>${escapeHtml(file.label)}｜${escapeHtml(file.name)}</span><button class="text-button" data-download-file="${file.id}" data-file-name="${escapeHtml(file.name)}">下载</button></div>`).join('') : '<p>尚未保存文件。</p>'}</div>`;
+}
+
+function selectedArchiveIds() {
+  return [...document.querySelectorAll('[data-archive-entry]:checked')].map((input) => input.dataset.archiveEntry);
+}
+
+function updateArchiveSelection() {
+  const count = selectedArchiveIds().length;
+  document.querySelector('#archive-selected-count').textContent = `已选择 ${count} 项`;
+  document.querySelector('#confirm-archive-export').disabled = count === 0;
+}
+
+function renderArchiveExportOptions() {
+  const entries = archiveEntries(state);
+  const groups = new Map();
+  entries.forEach((entry) => {
+    if (!groups.has(entry.group)) groups.set(entry.group, []);
+    groups.get(entry.group).push(entry);
+  });
+  document.querySelector('#archive-options').innerHTML = [...groups.entries()].map(([group, items]) => `<section class="archive-option-group"><h3>${escapeHtml(group)}<span>${items.length} 项</span></h3>${items.map((entry) => `<label class="archive-option"><input type="checkbox" data-archive-entry="${escapeHtml(entry.id)}" checked><span><strong>${escapeHtml(entry.label)}</strong><small>${entry.kind === 'file' ? formatSize(entry.size) : entry.kind === 'prompt' ? '文本提示词' : '流程数据'}</small></span></label>`).join('')}</section>`).join('');
+  updateArchiveSelection();
+}
+
+async function exportArchive() {
+  const selectedIds = selectedArchiveIds();
+  if (!selectedIds.length) { showToast('请至少选择一项导出内容。', 'warning'); return; }
+  const button = document.querySelector('#confirm-archive-export');
+  button.disabled = true;
+  button.textContent = '正在打包…';
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  try {
+    const now = new Date();
+    const { blob, itemCount } = await createArchive(state, selectedIds, getFile, now);
+    const pad = (value) => String(value).padStart(2, '0');
+    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    downloadBlob(`研究生选题档案包-${date}.zip`, blob);
+    document.querySelector('#archive-dialog').close();
+    showToast(`档案包已导出，共 ${itemCount} 项；工作台保存的 API key 未包含在内。`);
+  } catch (error) {
+    showToast(error.code === 'MISSING_FILES' ? error.message : '档案包导出失败，请检查浏览器存储空间后重试。', 'warning');
+  } finally {
+    button.textContent = '导出 ZIP';
+    updateArchiveSelection();
+  }
 }
 
 function updateProgress() {
@@ -289,11 +342,6 @@ async function removeArtifact(key, id) {
   saveState();
 }
 
-function profileMarkdown() {
-  const p = state.profile;
-  return `# 个人卡片\n\n> 本地生成，包含个人研究条件。第三次提示词会使用这些信息，请妥善保管。\n\n## 培养与研究主题\n\n- 培养类型：${p.degreeType}\n- 学制：${p.duration} 年\n- 专业方向：${p.major}\n- 中文主题：${p.topicZh}\n- 英文主题词：${p.topicEn}\n\n## 课题组与个人基础\n\n- 课题组研究方向与基础：${p.groupDirections || '待补充'}\n- 已有数据：${p.dataFoundation || '待补充'}\n- 实验基础：${p.experimentFoundation || '待补充'}\n- 硬件基础：${p.hardware || '待补充'}\n- 个人目标：${p.goal || '待补充'}\n- 明确约束：${p.constraints || '待补充'}\n`;
-}
-
 document.addEventListener('click', async (event) => {
   const button = event.target.closest('button');
   if (!button) return;
@@ -340,12 +388,23 @@ document.addEventListener('click', async (event) => {
     });
     renderReadings(); markStale('third'); saveState();
   }
-  if (button.id === 'download-profile') downloadBlob('个人卡片.local.md', profileMarkdown(), 'text/markdown;charset=utf-8');
+  if (button.id === 'download-profile') downloadBlob('个人卡片.local.md', profileMarkdown(state.profile), 'text/markdown;charset=utf-8');
   if (button.id === 'export-state') {
     downloadBlob('选题工作台进度.json', JSON.stringify(state, null, 2), 'application/json;charset=utf-8');
     showToast(state.keyMode === 'direct' && state.apiKey ? '进度已导出；其中包含 API key，请勿公开分享。文件本体需另行下载。' : '进度已导出；文件本体需另行下载。', 'warning');
   }
   if (button.id === 'import-state') document.querySelector('#state-file').click();
+  if (button.id === 'open-archive-export') {
+    renderArchiveExportOptions();
+    document.querySelector('#archive-dialog').showModal();
+  }
+  if (button.id === 'close-archive-dialog' || button.id === 'cancel-archive-export') document.querySelector('#archive-dialog').close();
+  if (button.id === 'archive-select-all' || button.id === 'archive-select-none') {
+    const checked = button.id === 'archive-select-all';
+    document.querySelectorAll('[data-archive-entry]').forEach((input) => { input.checked = checked; });
+    updateArchiveSelection();
+  }
+  if (button.id === 'confirm-archive-export') await exportArchive();
 });
 
 document.addEventListener('input', (event) => {
@@ -394,6 +453,7 @@ document.addEventListener('change', async (event) => {
     markStale('second'); saveState();
   }
   if (input.id === 'key-consent') { state.keyConsent = input.checked; markStale('second'); saveState(); }
+  if (input.dataset.archiveEntry) updateArchiveSelection();
   if (input.dataset.artifact) { await uploadArtifact(input.dataset.artifact, [...input.files]); input.value = ''; }
   if (input.dataset.priority) {
     if (input.checked && state.selectedDirections.length >= 4) { input.checked = false; showToast('最多选择 4 个优先方向。', 'warning'); return; }
