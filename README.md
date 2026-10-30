@@ -6,9 +6,19 @@
 
 **它不自动检索文献，不直接生成开题报告，也不替代人工核验与导师决策。**
 
-[快速开始](#3-快速开始) · [查看完整演示](#5-完整使用演示从个人卡片到候选选题报告) · [隐私与数据边界](docs/privacy.md)
+[快速开始](#3-快速开始) · [视频演示与账号关注](#视频演示与账号关注) · [查看完整演示](#5-完整使用演示从个人卡片到候选选题报告) · [隐私与数据边界](docs/privacy.md)
 
 ![研究生选题工作台概览：个人卡片与第一次提示词](docs/assets/readme/workbench-overview.png)
+
+## 视频演示与账号关注
+
+如果你更习惯跟着视频操作，可以在以下平台观看同一套工作流演示，并扫码关注维护者「轩子」。二维码用于打开对应平台的账号主页。
+
+| 平台 | 视频与账号 | 账号二维码 |
+|---|---|---|
+| **Bilibili** | [观看视频演示](https://www.bilibili.com/video/BV1xzxP6pEjf/) · 轩子0926 | <img src="docs/assets/social/bilibili.png" alt="B站账号二维码：轩子0926" width="160"> |
+| **抖音** | [观看视频演示](https://v.douyin.com/PjeUk_QMp2I/) · 轩子 | <img src="docs/assets/social/douyin.png" alt="抖音账号二维码：轩子" width="160"> |
+| **小红书** | [观看视频演示](https://xhslink.cn/o/5SchLYjEcOw) · 轩子 | <img src="docs/assets/social/xiaohongshu.jpg" alt="小红书账号二维码：轩子" width="160"> |
 
 ## 1. 为什么普通文献调研还不够
 
